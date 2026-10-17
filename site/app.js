@@ -431,22 +431,27 @@ function showDay(day, prs) {
 
 function calSegment(from, to, byDay) {
   // one block of week columns, Sunday-first like GitHub
-  const CELL = 12, GAP = 3, STEP = CELL + GAP, LEFT = 28, TOP = 16;
   const start = new Date(from); start.setDate(start.getDate() - start.getDay());
   const weeks = Math.ceil(((to - start) / DAY + 1) / 7);
+  // grow cells to fill the card for short periods; 53 weeks still fits at 12px
+  const LEFT = 28, TOP = 16, GAP = 3, width = $("calendar").clientWidth || 900;
+  const CELL = Math.max(10, Math.min(26, Math.floor((width - LEFT) / weeks) - GAP)), STEP = CELL + GAP;
   const g = svg("svg", { viewBox: `0 0 ${LEFT + weeks * STEP} ${TOP + 7 * STEP}`, width: LEFT + weeks * STEP,
     role: "img", "aria-label": `Merges per day from ${localDay(from)} to ${localDay(to)}` });
   [1, 3, 5].forEach((wd) => g.append(svg("text", { x: 0, y: TOP + wd * STEP + CELL - 2 }, WEEKDAY[wd])));
-  let lastLabel = -9;
+  // month names above the column holding the 1st, plus the first partial month
+  // when there is room before the next label
+  const labels = [];
+  for (let w = 0; w < weeks; w++) for (let wd = 0; wd < 7; wd++) {
+    const d = new Date(start); d.setDate(start.getDate() + w * 7 + wd);
+    if (d >= from && d <= to && (d.getDate() === 1 || +d === +from)) labels.push([w, d.getMonth()]);
+  }
+  if (labels.length > 1 && labels[1][0] - labels[0][0] < 3) labels.shift();
+  for (const [w, m] of labels) g.append(svg("text", { x: LEFT + w * STEP, y: 10 }, MONTH[m]));
   for (let w = 0; w < weeks; w++) {
     for (let wd = 0; wd < 7; wd++) {
       const d = new Date(start); d.setDate(start.getDate() + w * 7 + wd);
       if (d < from || d > to) continue;
-      // month name above the column holding the 1st (or the first day shown)
-      if ((d.getDate() === 1 || +d === +from) && w - lastLabel >= 3) {
-        lastLabel = w;
-        g.append(svg("text", { x: LEFT + w * STEP, y: 10 }, MONTH[d.getMonth()]));
-      }
       const key = localDay(d), prs = byDay.get(key) || [];
       const r = svg("rect", { class: "day", x: LEFT + w * STEP, y: TOP + wd * STEP, width: CELL, height: CELL, rx: 2,
         fill: css(`--q${binOf(prs.length)}`), "data-day": key });
