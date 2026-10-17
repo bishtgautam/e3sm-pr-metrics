@@ -68,6 +68,7 @@ button.link { border: 0; padding: 0; background: none; color: var(--accent); fon
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field.wide { flex-basis: 100%; }
 .field > label { font-size: 12px; color: var(--ink2); font-weight: 600; }
+.field > label .hint { font-weight: 400; color: var(--muted); }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .row.between { justify-content: space-between; }
 .seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 7px; overflow: hidden; }

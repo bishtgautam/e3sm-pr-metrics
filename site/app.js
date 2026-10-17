@@ -526,16 +526,17 @@ function render() {
   const inComps = (p) => compsOf(p).some((c) => state.comps.has(c));
   const inRange = (ms) => ms != null && ms >= lo && ms < hi;
 
-  const rows = [];
+  const speedOk = (d) => state.speed === "all" || (state.speed === "slow" ? d > state.slow : d <= state.slow);
+  const rows = [], counts = {};
   for (const p of DATA.prs) {
-    if (!inComps(p)) continue;
     const when = state.basis === "merged" ? t(p.mergedAt) : t(p.createdAt);
     if (!inRange(when)) continue;
     const days = daysToMerge(p);
     const age = p.state === "OPEN" && startOf(p) ? (NOW - startOf(p)) / DAY : null;
-    rows.push({ p, days, age, issue: labelIssue(p) });
+    if (speedOk(days ?? age ?? 0)) for (const c of compsOf(p)) counts[c] = (counts[c] || 0) + 1;
+    if (inComps(p)) rows.push({ p, days, age, issue: labelIssue(p) });
   }
-  const speedOk = (d) => state.speed === "all" || (state.speed === "slow" ? d > state.slow : d <= state.slow);
+  updateChipCounts(counts);
   const merged = rows.filter((r) => r.days != null && speedOk(r.days));
   const open = DATA.prs.filter((p) => p.state === "OPEN" && !p.draft && inComps(p) && startOf(p))
     .map((p) => ({ p, age: (NOW - startOf(p)) / DAY })).filter((r) => speedOk(r.age));
@@ -568,12 +569,22 @@ function syncControls() {
 }
 
 function buildChips() {
-  const counts = {};
-  for (const p of DATA.prs) for (const c of compsOf(p)) counts[c] = (counts[c] || 0) + 1;
   const keys = [...Object.keys(COMPONENTS), "unclassified"];
   $("comps").replaceChildren(...keys.map((k) => el("button", { type: "button", class: "chip", "data-v": k,
     onclick: () => { state.comps.has(k) ? state.comps.delete(k) : state.comps.add(k); update(); } },
-    compName(k), el("span", { class: "n" }, (counts[k] || 0).toLocaleString()))));
+    compName(k), el("span", { class: "n" }))));
+}
+
+// Chip counts follow the period, basis and fast/slow filters (like the PR
+// table) but not the component selection, so unselected chips still show
+// how many PRs they would add.
+function updateChipCounts(counts) {
+  const what = state.basis === "merged" ? "merged" : "opened";
+  for (const b of $("comps").querySelectorAll("button")) {
+    const n = counts[b.dataset.v] || 0;
+    b.querySelector(".n").textContent = n.toLocaleString();
+    b.title = `${n.toLocaleString()} PRs ${what} in the selected period`;
+  }
 }
 
 function update() { syncControls(); render(); }
