@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E3SM PR Integration</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+</head>
+<body>
+<header>
+  <div>
+    <h1>E3SM PR integration time</h1>
+    <p class="sub">Pull requests to <code>master</code> of
+      <a href="https://github.com/E3SM-Project/E3SM">E3SM-Project/E3SM</a>.
+      <span id="asof"></span></p>
+  </div>
+  <button id="theme" type="button" title="Toggle light/dark">◐</button>
+</header>
+
+<section class="filters" aria-label="Filters">
+  <div class="field">
+    <label>Period</label>
+    <div class="seg" id="preset">
+      <button data-v="30">30 d</button><button data-v="90">3 mo</button>
+      <button data-v="180">6 mo</button><button data-v="365">1 yr</button>
+      <button data-v="ytd">YTD</button><button data-v="all">All</button>
+      <button data-v="custom">Custom</button>
+    </div>
+    <div id="custom" class="row" hidden>
+      <input type="date" id="from" aria-label="From"> – <input type="date" id="to" aria-label="To">
+    </div>
+  </div>
+  <div class="field">
+    <label for="basis">PRs</label>
+    <select id="basis">
+      <option value="merged">merged in period</option>
+      <option value="opened">opened in period</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="measure">Clock starts</label>
+    <select id="measure">
+      <option value="createdAt">when opened</option>
+      <option value="readyAt">when ready for review (skip draft time)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="source">Component from</label>
+    <select id="source">
+      <option value="best">best guess (files → labels → branch)</option>
+      <option value="files">changed files</option>
+      <option value="labels">labels</option>
+      <option value="branch">branch name</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="slow">Slow if longer than <b id="slowv"></b> days</label>
+    <input type="range" id="slow" min="1" max="90" step="1">
+  </div>
+  <div class="field">
+    <label>Show</label>
+    <div class="seg" id="speed">
+      <button data-v="all">All</button><button data-v="fast">Fast</button><button data-v="slow">Slow</button>
+    </div>
+  </div>
+  <div class="field wide">
+    <label>Components <button type="button" class="link" id="compAll">all</button> · <button type="button" class="link" id="compNone">none</button></label>
+    <div id="comps" class="chips"></div>
+  </div>
+</section>
+
+<section class="tiles" id="tiles" aria-label="Summary"></section>
+
+<section class="grid">
+  <article class="card span2">
+    <h2>Time to merge, each PR</h2>
+    <p class="note">Each dot is a merged PR. Line is the monthly median. Log scale. Click a dot for its timeline.</p>
+    <div id="scatter" class="plot"></div>
+  </article>
+  <article class="card">
+    <h2>By component</h2>
+    <p class="note">Median days to merge; bar end-cap marks P90. A PR touching several components counts in each.</p>
+    <div id="bycomp" class="plot"></div>
+  </article>
+  <article class="card">
+    <h2>Where the time goes</h2>
+    <p class="note">Median days in each stage, merged PRs. Stages are medians of their own, so they need not add up to the total.</p>
+    <div id="stages" class="plot"></div>
+  </article>
+</section>
+
+<section class="grid">
+  <article class="card" id="lookup">
+    <h2>Look up a PR</h2>
+    <form id="lookupForm" class="row">
+      <input id="prnum" type="number" min="1" placeholder="PR number, e.g. 8705" aria-label="PR number">
+      <button type="submit">Show</button>
+    </form>
+    <div id="prOut"></div>
+  </article>
+  <article class="card">
+    <h2>Open PRs, oldest first</h2>
+    <p class="note">Currently open, non-draft, in the selected components. Age counted from the clock start.</p>
+    <div id="open" class="tablewrap"></div>
+  </article>
+</section>
+
+<section class="card">
+  <div class="row between">
+    <h2>Pull requests</h2>
+    <label class="check"><input type="checkbox" id="issuesOnly"> only PRs whose labels disagree with the files they change</label>
+  </div>
+  <div id="table" class="tablewrap"></div>
+</section>
+
+<footer>
+  Updated nightly by GitHub Actions. Component = model directories changed (historical names such as
+  <code>models/lnd</code>, <code>components/clm</code> → land are mapped). Merge-to-next comes from the
+  <code>Merge branch '…' into next (PR #N)</code> commit referenced on each PR.
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

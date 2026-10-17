@@ -1,0 +1,67 @@
+name: Update dashboard
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # daily, 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Refetch every PR instead of only recently updated ones"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tests
+        run: python -m unittest discover tests
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      # Start from the data already published, so the nightly run only has
+      # to fetch PRs updated since then. The first run does a full fetch.
+      - name: Restore previous data
+        run: |
+          mkdir -p site/data
+          curl -fsSL "${{ steps.pages.outputs.base_url }}/data/prs.json" -o site/data/prs.json \
+            || echo "no previous data; doing a full fetch"
+
+      - name: Fetch PRs
+        env:
+          # The built-in token can read public repositories. To fetch from a
+          # private fork instead, store a token as the GH_PAT secret.
+          GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: python fetch.py ${{ inputs.full && '--full' || '' }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
