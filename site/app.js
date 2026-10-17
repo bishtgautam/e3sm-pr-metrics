@@ -184,7 +184,7 @@ function drawScatter(merged) {
   });
   Plotly.react("scatter", [pts(true), pts(false), med], layout, CONFIG);
   $("scatter").removeAllListeners?.("plotly_click");
-  $("scatter").on("plotly_click", (ev) => {
+  $("scatter").on?.("plotly_click", (ev) => {
     const n = ev.points[0]?.customdata;
     if (n) showPR(n, true);
   });
