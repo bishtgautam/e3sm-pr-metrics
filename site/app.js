@@ -604,6 +604,12 @@ function wire() {
     render();
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  // the calendar sizes its cells to the card, so redraw when the width changes
+  let lastW = innerWidth, timer;
+  addEventListener("resize", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { if (innerWidth !== lastW) { lastW = innerWidth; render(); } }, 200);
+  });
 }
 
 async function main() {
