@@ -78,6 +78,16 @@
     <p class="note">Each dot is a merged PR. Line is the monthly median. Log scale. Click a dot for its timeline.</p>
     <div id="scatter" class="plot"></div>
   </article>
+  <article class="card span2" id="calCard">
+    <div class="row between">
+      <h2>PRs merged to master per day</h2>
+      <div id="calLegend" class="cal-legend" aria-hidden="true"></div>
+    </div>
+    <p class="note">Counted on the merge date, in your time zone, for the selected period and components. Hover over a day for its PRs, or click it to list them.</p>
+    <div id="calStats" class="cal-stats"></div>
+    <div id="calendar" class="calendar"></div>
+    <div id="calDay"></div>
+  </article>
   <article class="card">
     <h2>By component</h2>
     <p class="note">Median days to merge; bar end-cap marks P90. A PR touching several components counts in each.</p>

@@ -12,6 +12,7 @@
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
   --accent: #2a78d6;
   --critical: #d03b3b;
+  --q0: #efeee9; --q1: #b7d3f6; --q2: #86b6ef; --q3: #3987e5; --q4: #1c5cab; --q5: #0d366b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -21,6 +22,7 @@
     --ring: rgba(255, 255, 255, 0.10); --wash: rgba(255, 255, 255, 0.06);
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
     --accent: #3987e5;
+    --q0: #262624; --q1: #184f95; --q2: #256abf; --q3: #3987e5; --q4: #6da7ec; --q5: #b7d3f6;
   }
 }
 :root[data-theme="dark"] {
@@ -30,6 +32,7 @@
   --ring: rgba(255, 255, 255, 0.10); --wash: rgba(255, 255, 255, 0.06);
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
   --accent: #3987e5;
+  --q0: #262624; --q1: #184f95; --q2: #256abf; --q3: #3987e5; --q4: #6da7ec; --q5: #b7d3f6;
 }
 
 * { box-sizing: border-box; }
@@ -119,3 +122,24 @@ tr.slow td.num.days { color: var(--critical); font-weight: 600; }
 #prBar { height: 120px; }
 
 [hidden] { display: none !important; }
+
+.calendar { display: flex; flex-direction: column; gap: 14px; overflow-x: auto; }
+.calendar svg { display: block; max-width: 100%; height: auto; }
+.calendar text { fill: var(--muted); font-size: 10px; font-family: inherit; }
+.calendar .yr { fill: var(--ink2); font-size: 11px; font-weight: 600; }
+.calendar rect.day { cursor: pointer; }
+.calendar rect.day:hover, .calendar rect.day.sel { stroke: var(--ink); stroke-width: 1.5; }
+.cal-legend { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
+.cal-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.cal-legend span { margin: 0 4px; }
+.cal-stats { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 13px; color: var(--ink2); margin: 2px 0 10px; }
+.cal-stats b { color: var(--ink); font-size: 15px; }
+#calDay { margin-top: 10px; font-size: 13px; }
+#calDay ul { margin: 6px 0 0; padding-left: 18px; }
+#caltip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--axis); border-radius: 6px; padding: 6px 8px; font-size: 12px; max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+#caltip .hd { font-weight: 600; margin-bottom: 2px; }
+#caltip .pr { color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

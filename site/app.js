@@ -385,6 +385,132 @@ function showPR(n, scroll) {
   if (scroll) $("lookup").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// ---------- merges per day (calendar) ----------
+const BINS = [[0, 0, "0"], [1, 1, "1"], [2, 2, "2"], [3, 4, "3–4"], [5, 7, "5–7"], [8, Infinity, "8+"]];
+const binOf = (n) => BINS.findIndex(([a, b]) => n >= a && n <= b);
+const localDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const SVG = "http://www.w3.org/2000/svg";
+let calSel = null;
+
+function svg(tag, attrs = {}, text) {
+  const e = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function calTip(ev, day, prs) {
+  let tip = $("caltip");
+  if (!tip) { tip = el("div", { id: "caltip", role: "tooltip" }); document.body.append(tip); }
+  if (!ev) { tip.hidden = true; return; }
+  const d = new Date(day + "T12:00:00");
+  tip.replaceChildren(
+    el("div", { class: "hd" }, `${prs.length} merged`, el("span", { class: "who" }, ` · ${WEEKDAY[d.getDay()]} ${day}`)),
+    ...prs.slice(0, 8).map((p) => el("div", { class: "pr" }, `#${p.number} ${p.title}`)),
+    prs.length > 8 ? el("div", { class: "who" }, `+ ${prs.length - 8} more, click to list`) : null,
+  );
+  tip.hidden = false;
+  const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
+  const y = ev.clientY + 16 + tip.offsetHeight > innerHeight ? ev.clientY - tip.offsetHeight - 10 : ev.clientY + 16;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+
+function showDay(day, prs) {
+  calSel = day;
+  for (const r of $("calendar").querySelectorAll("rect.day")) r.classList.toggle("sel", r.dataset.day === day);
+  if (!day) return $("calDay").replaceChildren();
+  $("calDay").replaceChildren(
+    el("b", {}, `Merged on ${day}: ${prs.length}`), " ",
+    el("button", { type: "button", class: "link", onclick: () => showDay(null) }, "close"),
+    prs.length ? el("ul", {}, prs.map((p) => el("li", {}, prLink(p), " ", p.title, " ",
+      el("span", { class: "who" }, `${p.author} · ${compsOf(p).map(compName).join(", ")}`)))) : null,
+  );
+}
+
+function calSegment(from, to, byDay) {
+  // one block of week columns, Sunday-first like GitHub
+  const CELL = 12, GAP = 3, STEP = CELL + GAP, LEFT = 28, TOP = 16;
+  const start = new Date(from); start.setDate(start.getDate() - start.getDay());
+  const weeks = Math.ceil(((to - start) / DAY + 1) / 7);
+  const g = svg("svg", { viewBox: `0 0 ${LEFT + weeks * STEP} ${TOP + 7 * STEP}`, width: LEFT + weeks * STEP,
+    role: "img", "aria-label": `Merges per day from ${localDay(from)} to ${localDay(to)}` });
+  [1, 3, 5].forEach((wd) => g.append(svg("text", { x: 0, y: TOP + wd * STEP + CELL - 2 }, WEEKDAY[wd])));
+  let lastLabel = -9;
+  for (let w = 0; w < weeks; w++) {
+    for (let wd = 0; wd < 7; wd++) {
+      const d = new Date(start); d.setDate(start.getDate() + w * 7 + wd);
+      if (d < from || d > to) continue;
+      // month name above the column holding the 1st (or the first day shown)
+      if ((d.getDate() === 1 || +d === +from) && w - lastLabel >= 3) {
+        lastLabel = w;
+        g.append(svg("text", { x: LEFT + w * STEP, y: 10 }, MONTH[d.getMonth()]));
+      }
+      const key = localDay(d), prs = byDay.get(key) || [];
+      const r = svg("rect", { class: "day", x: LEFT + w * STEP, y: TOP + wd * STEP, width: CELL, height: CELL, rx: 2,
+        fill: css(`--q${binOf(prs.length)}`), "data-day": key });
+      if (key === calSel) r.classList.add("sel");
+      r.addEventListener("pointermove", (ev) => calTip(ev, key, prs));
+      r.addEventListener("pointerleave", () => calTip(null));
+      r.addEventListener("click", () => showDay(key, prs));
+      g.append(r);
+    }
+  }
+  return g;
+}
+
+function drawCalendar(prs, lo, hi) {
+  calTip(null);
+  const byDay = new Map();
+  for (const p of prs) {
+    const k = localDay(new Date(t(p.mergedAt)));
+    (byDay.get(k) || byDay.set(k, []).get(k)).push(p);
+  }
+  for (const list of byDay.values()) list.sort((a, b) => t(a.mergedAt) - t(b.mergedAt));
+  $("calLegend").replaceChildren(el("span", {}, "Less"),
+    ...BINS.map(([, , label], i) => el("i", { style: `background:${css(`--q${i}`)}`, title: label })), el("span", {}, "More"));
+  if (!prs.length) {
+    $("calStats").replaceChildren();
+    $("calendar").replaceChildren(el("p", { class: "empty" }, "No PRs merged in this period and these components."));
+    return showDay(null);
+  }
+  const first = Math.min(...prs.map((p) => t(p.mergedAt)));
+  const from = new Date(Math.max(lo, first)); from.setHours(0, 0, 0, 0);
+  const to = new Date(Math.min(hi - 1, NOW)); to.setHours(0, 0, 0, 0);
+
+  // stats over the days shown
+  let days = 0, weekdays = 0, active = 0, weekdayMerges = 0, busiest = null;
+  for (const d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+    const n = (byDay.get(localDay(d)) || []).length;
+    days++; if (n) active++;
+    if (d.getDay() % 6) { weekdays++; weekdayMerges += n; }
+    if (!busiest || n > busiest[1]) busiest = [localDay(d), n];
+  }
+  const stat = (label, value) => el("span", {}, el("b", {}, value), " ", label);
+  $("calStats").replaceChildren(
+    stat("merged", prs.length.toLocaleString()),
+    stat("per weekday on average", weekdays ? (weekdayMerges / weekdays).toFixed(1) : "–"),
+    stat(`of ${days.toLocaleString()} days had a merge`, Math.round((100 * active) / days) + "%"),
+    busiest && busiest[1] ? stat(`on ${busiest[0]}, the busiest day`, busiest[1]) : null,
+  );
+
+  // one block for up to ~13 months, otherwise one block per calendar year
+  const segs = [];
+  if ((to - from) / DAY <= 400) segs.push([from, to, null]);
+  else for (let y = from.getFullYear(); y <= to.getFullYear(); y++) {
+    segs.push([new Date(Math.max(from, new Date(y, 0, 1))), new Date(Math.min(to, new Date(y, 11, 31))), y]);
+  }
+  $("calendar").replaceChildren(...segs.reverse().map(([a, b, y]) => {
+    const block = calSegment(a, b, byDay);
+    if (y == null) return block;
+    const n = prs.filter((p) => new Date(t(p.mergedAt)).getFullYear() === y).length;
+    return el("div", {}, el("div", { class: "note" }, el("b", {}, String(y)), ` · ${n} merged`), block);
+  }));
+  if (calSel && (calSel < localDay(from) || calSel > localDay(to))) showDay(null);
+  else if (calSel) showDay(calSel, byDay.get(calSel) || []);
+}
+
 // ---------- main render ----------
 function render() {
   writeHash();
@@ -411,6 +537,8 @@ function render() {
 
   drawTiles(merged, open, issues);
   drawScatter(merged);
+  drawCalendar(DATA.prs.filter((p) => p.mergedAt && inComps(p) && inRange(t(p.mergedAt))
+    && daysToMerge(p) != null && speedOk(daysToMerge(p))), lo, hi);
   drawByComp(merged);
   drawStages(merged);
   drawOpen(open);
