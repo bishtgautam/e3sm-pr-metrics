@@ -33,6 +33,9 @@ function el(tag, attrs = {}, ...kids) {
   return e;
 }
 
+// replaceChildren, skipping null/false entries from conditional pieces
+const fill = (node, ...kids) => node.replaceChildren(...kids.flat().filter((k) => k != null && k !== false));
+
 function quantile(xs, q) {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -313,7 +316,7 @@ function drawTable(rows) {
     const i = r.issue;
     return i ? el("span", { class: "badge warn", title: i.text }, i.kind === "unlabeled" ? "unlabeled" : "label mismatch") : null;
   };
-  $("table").replaceChildren(
+  fill($("table"),
     rows.length ? table([
       { label: "PR", key: "number", sort: 1, cell: (r) => prLink(r.p) },
       { label: "Days", key: "days", sort: 1, cls: "num days", cell: (r) => fmtDays(r.days ?? r.age) },
@@ -359,7 +362,7 @@ function showPR(n, scroll) {
     ["Merged to next", p.nextAt, p.nextSha],
     ["Merged to master", p.mergedAt, p.mergedBy],
   ].filter((m) => m[1]);
-  out.replaceChildren(
+  fill(out,
     el("p", {}, el("a", { href: p.url, target: "_blank", rel: "noopener" }, `#${p.number}`), " ", el("b", {}, p.title)),
     el("div", { class: "meta" },
       "Components: ", el("b", {}, p.components.map(compName).join(", ") || "–"),
@@ -406,10 +409,10 @@ function calTip(ev, day, prs) {
   if (!tip) { tip = el("div", { id: "caltip", role: "tooltip" }); document.body.append(tip); }
   if (!ev) { tip.hidden = true; return; }
   const d = new Date(day + "T12:00:00");
-  tip.replaceChildren(
+  fill(tip,
     el("div", { class: "hd" }, `${prs.length} merged`, el("span", { class: "who" }, ` · ${WEEKDAY[d.getDay()]} ${day}`)),
     ...prs.slice(0, 8).map((p) => el("div", { class: "pr" }, `#${p.number} ${p.title}`)),
-    prs.length > 8 ? el("div", { class: "who" }, `+ ${prs.length - 8} more, click to list`) : null,
+    ...(prs.length > 8 ? [el("div", { class: "who" }, `+ ${prs.length - 8} more, click to list`)] : []),
   );
   tip.hidden = false;
   const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
@@ -421,7 +424,7 @@ function showDay(day, prs) {
   calSel = day;
   for (const r of $("calendar").querySelectorAll("rect.day")) r.classList.toggle("sel", r.dataset.day === day);
   if (!day) return $("calDay").replaceChildren();
-  $("calDay").replaceChildren(
+  fill($("calDay"),
     el("b", {}, `Merged on ${day}: ${prs.length}`), " ",
     el("button", { type: "button", class: "link", onclick: () => showDay(null) }, "close"),
     prs.length ? el("ul", {}, prs.map((p) => el("li", {}, prLink(p), " ", p.title, " ",
@@ -493,7 +496,7 @@ function drawCalendar(prs, lo, hi) {
     if (!busiest || n > busiest[1]) busiest = [localDay(d), n];
   }
   const stat = (label, value) => el("span", {}, el("b", {}, value), " ", label);
-  $("calStats").replaceChildren(
+  fill($("calStats"),
     stat("merged", prs.length.toLocaleString()),
     stat("per weekday on average", weekdays ? (weekdayMerges / weekdays).toFixed(1) : "–"),
     stat(`of ${days.toLocaleString()} days had a merge`, Math.round((100 * active) / days) + "%"),
