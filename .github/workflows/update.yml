@@ -52,6 +52,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: python fetch.py ${{ inputs.full && '--full' || '' }}
 
+      # Pages lets browsers cache files for 10 minutes; version the assets
+      # so a new deploy shows up immediately.
+      - name: Version static assets
+        run: sed -i -e "s/app\.js\"/app.js?v=${GITHUB_SHA::7}\"/" -e "s/style\.css\"/style.css?v=${GITHUB_SHA::7}\"/" site/index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

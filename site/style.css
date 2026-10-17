@@ -102,7 +102,9 @@ th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid
 th { position: sticky; top: 0; background: var(--surface); color: var(--ink2); font-weight: 600; cursor: pointer; white-space: nowrap; }
 th[aria-sort] { color: var(--ink); }
 td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-td.title { max-width: 420px; }
+td.title { max-width: 420px; min-width: 220px; }
+td.labels { max-width: 220px; color: var(--ink2); font-size: 12px; }
+.who { color: var(--muted); font-size: 12px; }
 tr.slow td.num.days { color: var(--critical); font-weight: 600; }
 .badge { font-size: 11px; border: 1px solid var(--ring); border-radius: 4px; padding: 0 5px; color: var(--ink2); white-space: nowrap; }
 .badge.warn { border-color: var(--s2); color: var(--ink); }

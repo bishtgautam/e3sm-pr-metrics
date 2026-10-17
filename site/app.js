@@ -200,8 +200,7 @@ function drawByComp(merged) {
   const hover = g.map((r) => `${compName(r.c)} · ${r.n} PRs<br>median <b>${fmtDays(r.med)} d</b> · P75 ${fmtDays(r.p75)} d · P90 ${fmtDays(r.p90)} d`);
   Plotly.react("bycomp", [
     { type: "bar", orientation: "h", name: "Median", y, x: g.map((r) => r.med), text: hover,
-      hovertemplate: "%{text}<extra></extra>", marker: { color: css("--s1") },
-      texttemplate: "%{x:.1f}", textposition: "outside", textfont: { color: css("--ink2"), size: 11 } },
+      hovertemplate: "%{text}<extra></extra>", marker: { color: css("--s1") }, textposition: "none" },
     { type: "scatter", mode: "markers", name: "P90", y, x: g.map((r) => r.p90), text: hover,
       hovertemplate: "%{text}<extra></extra>",
       marker: { symbol: "line-ns-open", size: 14, line: { width: 2, color: css("--ink") }, color: css("--ink") } },
@@ -231,7 +230,7 @@ function drawStages(merged) {
   }));
   const h = Math.max(260, 34 * g.length + 90);
   Plotly.react("stages", traces, baseLayout({
-    barmode: "stack", height: h, bargap: 0.35, legend: { orientation: "h", y: -0.12, x: 0, yanchor: "top" },
+    barmode: "stack", height: h, bargap: 0.35, legend: { orientation: "h", y: -0.12, x: 0, yanchor: "top", traceorder: "normal" },
     xaxis: { title: { text: "median days", font: { size: 12 } } },
   }), CONFIG);
   $("stages").style.height = h + "px";
@@ -285,10 +284,9 @@ function drawOpen(open) {
   const rows = [...open].sort((a, b) => b.age - a.age).slice(0, 100);
   $("open").replaceChildren(table([
     { label: "PR", cell: (r) => prLink(r.p) },
-    { label: "Title", cls: "title", cell: (r) => r.p.title },
-    { label: "Author", cell: (r) => r.p.author },
-    { label: "Stage", cell: (r) => currentStage(r.p) },
     { label: "Age (d)", cls: "num days", cell: (r) => fmtDays(r.age) },
+    { label: "Stage", cell: (r) => currentStage(r.p) },
+    { label: "Title", cls: "title", cell: (r) => [r.p.title, el("div", { class: "who" }, r.p.author)] },
   ], rows.map((r) => ({ ...r, cls: r.age > state.slow ? "slow" : "" }))));
 }
 
@@ -307,13 +305,12 @@ function drawTable(rows) {
   $("table").replaceChildren(
     rows.length ? table([
       { label: "PR", key: "number", sort: 1, cell: (r) => prLink(r.p) },
-      { label: "Title", cls: "title", cell: (r) => r.p.title },
-      { label: "Author", key: "author", sort: 1, cell: (r) => r.p.author },
+      { label: "Days", key: "days", sort: 1, cls: "num days", cell: (r) => fmtDays(r.days ?? r.age) },
+      { label: "Title", cls: "title", cell: (r) => [r.p.title, el("div", { class: "who" }, r.p.author)] },
       { label: "Components", cell: (r) => [compsOf(r.p).map(compName).join(", "), " ", badge(r)] },
-      { label: "Labels", cell: (r) => r.p.labels.join(", ") },
       { label: "Opened", key: "opened", sort: 1, cls: "num", cell: (r) => fmtDate(t(r.p.createdAt)) },
       { label: "Merged", key: "merged", sort: 1, cls: "num", cell: (r) => r.p.mergedAt ? fmtDate(t(r.p.mergedAt)) : r.p.state.toLowerCase() },
-      { label: "Days", key: "days", sort: 1, cls: "num days", cell: (r) => fmtDays(r.days ?? r.age) },
+      { label: "Labels", cls: "labels", cell: (r) => r.p.labels.join(", ") },
     ], shown.map((r) => ({ ...r, cls: (r.days ?? r.age) > state.slow ? "slow" : "" })), true)
       : el("p", { class: "empty" }, "No PRs match these filters."),
     rows.length > 500 ? el("p", { class: "note" }, `Showing 500 of ${rows.length}. Sort or narrow the filters to see others.`) : null,
