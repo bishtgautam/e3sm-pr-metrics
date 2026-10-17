@@ -136,11 +136,21 @@ const CONFIG = { displaylogo: false, responsive: true, modeBarButtonsToRemove: [
 function emptyPlot(id, msg) {
   Plotly.purge(id);
   $(id).replaceChildren(el("p", { class: "empty" }, msg));
+  $(id).dataset.empty = "1";
+}
+
+// Remove the "no data" message before plotting. Never clear a live plot:
+// Plotly.react would keep updating an SVG that is no longer in the page.
+function plotReady(id) {
+  if ($(id).dataset.empty) {
+    $(id).replaceChildren();
+    delete $(id).dataset.empty;
+  }
 }
 
 function drawScatter(merged) {
   if (!merged.length) return emptyPlot("scatter", "No merged PRs match these filters.");
-  $("scatter").replaceChildren();
+  plotReady("scatter");
   const pts = (fast) => {
     const xs = merged.filter((r) => (r.days > state.slow) !== fast);
     return {
@@ -195,7 +205,7 @@ function drawByComp(merged) {
     return { c, n: d.length, med: quantile(d, 0.5), p75: quantile(d, 0.75), p90: quantile(d, 0.9) };
   }).sort((a, b) => a.med - b.med);
   if (!g.length) return emptyPlot("bycomp", "No merged PRs match these filters.");
-  $("bycomp").replaceChildren();
+  plotReady("bycomp");
   const y = g.map((r) => `${compName(r.c)} (${r.n})`);
   const hover = g.map((r) => `${compName(r.c)} · ${r.n} PRs<br>median <b>${fmtDays(r.med)} d</b> · P75 ${fmtDays(r.p75)} d · P90 ${fmtDays(r.p90)} d`);
   Plotly.react("bycomp", [
@@ -220,7 +230,7 @@ function drawStages(merged) {
     return o;
   }).sort((a, b) => a.tot - b.tot);
   if (!g.length) return emptyPlot("stages", "No merged PRs match these filters.");
-  $("stages").replaceChildren();
+  plotReady("stages");
   const y = g.map((r) => compName(r.c));
   const traces = STAGES.map(([k, label, color]) => ({
     type: "bar", orientation: "h", name: label, y, x: g.map((r) => r[k]),
@@ -472,6 +482,12 @@ async function main() {
   } catch (err) {
     document.querySelector(".tiles").replaceChildren(el("p", { class: "empty" }, `Could not load data/prs.json (${err.message}). Run fetch.py first.`));
     return;
+  }
+  if (!window.Plotly) {
+    for (const id of ["scatter", "bycomp", "stages"]) {
+      $(id).replaceChildren(el("p", { class: "empty" }, "The charting library did not load. Reload the page."));
+    }
+    window.Plotly = { react() {}, purge() {}, newPlot() {} };  // keep tiles and tables working
   }
   COMPONENTS = DATA.components;
   NOW = t(DATA.fetchedAt) || Math.max(...DATA.prs.map((p) => t(p.updatedAt)));
