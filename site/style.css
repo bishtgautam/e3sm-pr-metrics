@@ -116,3 +116,4 @@ tr.slow td.num.days { color: var(--critical); font-weight: 600; }
 #prOut .total { font-weight: 600; margin-top: 8px; }
 #prBar { height: 120px; }
 
+[hidden] { display: none !important; }

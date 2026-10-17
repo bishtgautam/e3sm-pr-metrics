@@ -107,6 +107,11 @@ class Record(unittest.TestCase):
             "oid": "x" * 10, "messageHeadline": "Merge branch 'someone/else' into next (PR #8000)"}}]})
         self.assertIsNone(to_record(pr)["nextAt"])
 
+    def test_next_merge_after_master_ignored(self):
+        pr = dict(PR_8705, refs={"nodes": [{"createdAt": "2026-10-20T00:00:00Z", "commit": {
+            "oid": "x" * 10, "messageHeadline": "Merge branch 'njeffery/ocean/fix-frazil-energy' into next (PR #8705)"}}]})
+        self.assertIsNone(to_record(pr)["nextAt"])
+
 
 if __name__ == "__main__":
     unittest.main()

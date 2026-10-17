@@ -152,6 +152,9 @@ def to_record(pr, extra_files=()):
     for ref in sorted((n for n in pr["refs"]["nodes"] if n and n.get("commit")),
                       key=lambda n: n["createdAt"]):
         head = ref["commit"]["messageHeadline"]
+        # a re-merge to next after the PR reached master is not its integration
+        if pr["mergedAt"] and ref["createdAt"] > pr["mergedAt"]:
+            continue
         if NEXT_RE.search(head) and (tag in head or (branch and branch in head)):
             next_at, next_sha = ref["createdAt"], ref["commit"]["oid"][:10]
             break

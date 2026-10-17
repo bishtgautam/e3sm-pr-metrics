@@ -29,6 +29,8 @@ def phases(rec, now=None):
     if approval and approval >= start:
         out.append(("In review until last approval", start, approval))
         start = approval
+    if nxt and merged and nxt > merged:
+        nxt = None  # re-merged to next after master; not part of integration
     if nxt and nxt >= start:
         out.append(("Approved, waiting for merge to next", start, nxt))
         out.append(("Testing on next, waiting for master", nxt, merged))

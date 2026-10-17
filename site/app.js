@@ -63,7 +63,8 @@ function labelIssue(p) {
 
 function stagesOf(p) {
   const created = t(p.createdAt), ready = t(p.readyAt), review = t(p.firstReviewAt);
-  const appr = t(p.lastApprovalAt), next = t(p.nextAt), merged = t(p.mergedAt);
+  const appr = t(p.lastApprovalAt), merged = t(p.mergedAt);
+  const next = t(p.nextAt) && !(merged && t(p.nextAt) > merged) ? t(p.nextAt) : null;
   const out = {};
   let cur = ready || created;
   if (ready && ready > created) out.draft = (ready - created) / DAY;
