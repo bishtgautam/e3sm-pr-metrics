@@ -228,9 +228,10 @@ function drawStages(merged) {
     text: g.map((r) => `${compName(r.c)}<br>${label}: <b>${fmtDays(r[k])} d</b> (median)`),
     hovertemplate: "%{text}<extra></extra>", textposition: "none",
   }));
-  const h = Math.max(260, 34 * g.length + 90);
+  const h = Math.max(260, 34 * g.length + 140);
   Plotly.react("stages", traces, baseLayout({
-    barmode: "stack", height: h, bargap: 0.35, legend: { orientation: "h", y: -0.12, x: 0, yanchor: "top", traceorder: "normal" },
+    barmode: "stack", height: h, bargap: 0.35, legend: { orientation: "h", y: 1, x: 0, yanchor: "bottom", traceorder: "normal" },
+    margin: { l: 10, r: 10, t: 60, b: 10 },
     xaxis: { title: { text: "median days", font: { size: 12 } } },
   }), CONFIG);
   $("stages").style.height = h + "px";
